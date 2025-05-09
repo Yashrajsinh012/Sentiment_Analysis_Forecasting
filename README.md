@@ -3,8 +3,6 @@
 ![image](https://github.com/user-attachments/assets/b94acfa3-efb3-417b-b3e2-d0cccd3a685c)
 
 
-# **Sentiment Analysis of E-commerce User Reviews Using Time-Series Modeling**
-
 ## **Abstract**
 
 Sentiment analysis plays a crucial role in understanding user opinions and improving business strategies. While traditional sentiment analysis provides insights into static reviews, this project focuses on understanding the **temporal evolution** of sentiment, which is influenced by external factors like product updates, competitor activity, and market trends. By applying **BiLSTM with Attention** and **time-series modeling** (including **Hidden Markov Models (HMM)** and **LSTMs**), the project aims to track sentiment shifts over time and detect anomalies in user feedback for e-commerce platforms like Amazon. These insights can help businesses anticipate changes, respond to emerging trends, and refine product strategies.
