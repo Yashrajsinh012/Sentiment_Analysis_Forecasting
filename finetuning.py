@@ -7,68 +7,21 @@ import pandas as pd
 import json
 import random
 from tqdm import tqdm
+from model import BERT_BiLSTM_Attention, SentimentClassifier
 
 
-# Device Configuration
+'''Device Configuration'''
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Running on {device}")
 
-###############################################################################################################################
-
-# Define BERT + BiLSTM + Attention Encoder Model
-class BERT_BiLSTM_Attention(nn.Module):
-    def __init__(self, bert_model_name="bert-base-uncased", hidden_size=128):
-        super().__init__()
-        self.bert = BertModel.from_pretrained(bert_model_name)
-        self.bilstm = nn.LSTM(self.bert.config.hidden_size, hidden_size, num_layers=2,
-                              batch_first=True, bidirectional=True)
-        self.attention = nn.Linear(hidden_size * 2, 1)
-        self.embedding_fc = nn.Linear(hidden_size * 2, hidden_size * 2)
-
-    def attention_layer(self, lstm_output):
-        attn_weights = torch.softmax(self.attention(lstm_output), dim=1)
-        return torch.sum(attn_weights * lstm_output, dim=1)
-
-    def forward(self, input_ids, attention_mask):
-        with torch.no_grad():
-            bert_output = self.bert(input_ids=input_ids, attention_mask=attention_mask)
-        lstm_out, _ = self.bilstm(bert_output.last_hidden_state)
-        attn_output = self.attention_layer(lstm_out)
-        return self.embedding_fc(attn_output)
-
-
-# Define the Sentiment Classifier Model
-class SentimentClassifier(nn.Module):
-    def __init__(self, input_dim=256, hidden_dim=128):
-        super().__init__()
-        self.fc = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim * 2),
-            nn.BatchNorm1d(hidden_dim * 2),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(hidden_dim * 2, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(hidden_dim, 64),
-            nn.BatchNorm1d(64),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(64, 3)
-        )
-
-    def forward(self, x):
-        return self.fc(x)
-
-
-# Pairwise distance function for triplet loss calculation
+'''Pairwise distance function for triplet loss calculation'''
 def pairwise_distance(embeddings):
     dot = torch.matmul(embeddings, embeddings.T)
     norm = torch.diagonal(dot)
     return torch.clamp(norm.unsqueeze(1) - 2 * dot + norm.unsqueeze(0), min=0.0)
 
 
-# Batch hard triplet loss function
+'''Batch hard triplet loss function'''
 def batch_hard_triplet_loss(embeddings, labels, margin=0.5):
     dists = pairwise_distance(embeddings)
     labels = labels.unsqueeze(1)
@@ -80,7 +33,7 @@ def batch_hard_triplet_loss(embeddings, labels, margin=0.5):
     return torch.relu(hardest_pos - hardest_neg + margin).mean()
 
 
-# Dataset for triplet generation (anchor, positive, negative)
+'''Dataset for triplet generation (anchor, positive, negative)'''
 class TripletSentimentDataset(Dataset):
     def __init__(self, df, tokenizer, max_len=128):
         self.tokenizer, self.max_len = tokenizer, max_len
@@ -94,24 +47,23 @@ class TripletSentimentDataset(Dataset):
         return self.tokenizer(text, truncation=True, padding='max_length', max_length=self.max_len, return_tensors="pt")
 
     def __getitem__(self, idx):
-        # Randomly select anchor class
-        anchor_sentiment = random.choice([0, 1, -1])  # Neutral, Positive, or Negative
+        anchor_sentiment = random.choice([0, 1, -1])  
         anchor_row = self.class_to_indices[anchor_sentiment].iloc[idx]
         anchor_text = anchor_row['summary']
 
-        # Positive: sample from same class (excluding the anchor)
+        '''Positive: sample from same class (excluding the anchor)'''
         pos_idx = idx
         while pos_idx == idx:
             pos_idx = random.choice(self.class_to_indices[anchor_sentiment].index.tolist())
         positive_text = self.class_to_indices[anchor_sentiment].loc[pos_idx, 'summary']
         
-        # Negative: sample from a different class
+        '''Negative: sample from a different class'''
         negative_classes = [label for label in self.class_to_indices if label != anchor_sentiment]
         neg_class = random.choice(negative_classes)
         neg_idx = random.choice(self.class_to_indices[neg_class].index.tolist())
         negative_text = self.class_to_indices[neg_class].loc[neg_idx, 'summary']
 
-        # Tokenize all
+        ''' Tokenize'''
         anchor = self.tokenize(anchor_text)
         pos = self.tokenize(positive_text)
         neg = self.tokenize(negative_text)
@@ -126,7 +78,7 @@ class TripletSentimentDataset(Dataset):
         }
 
 
-# Encoder training function with triplet loss
+'''Encoder training function with triplet loss'''
 def train_triplet_encoder(model, df, tokenizer, batch_size=32, patience=5):
     model.train()
     loader = DataLoader(TripletSentimentDataset(df, tokenizer), batch_size=batch_size, shuffle=True)
@@ -174,7 +126,7 @@ def train_triplet_encoder(model, df, tokenizer, batch_size=32, patience=5):
                 break
 
 
-# Function to extract embeddings from the encoder
+'''Function to extract embeddings from the encoder'''
 def extract_embeddings(df, model, tokenizer, batch_size=64, max_len=128, device="cpu"):
     texts, sentiments = df["summary"].tolist(), df["sentiment"].tolist()
     model.eval(); all_embeds = []
@@ -189,7 +141,7 @@ def extract_embeddings(df, model, tokenizer, batch_size=64, max_len=128, device=
     return np.vstack(all_embeds), sentiments
 
 
-# Classifier training function with early stopping
+'''Classifier training function with early stopping'''
 def train_classifier(encoder, classifier, df, tokenizer, batch_size=64, patience=5, delta=0.001):
     classifier.train()
     embeddings, labels = extract_embeddings(df, encoder, tokenizer, device=device)
@@ -228,7 +180,7 @@ def train_classifier(encoder, classifier, df, tokenizer, batch_size=64, patience
     print("Early stopping triggered!")
 
 
-# Load data and combine both files into one dataframe
+''' Load data and combine both files into one dataframe'''
 def load_and_combine_data(annotated_jsonl_path, initial_labeled_jsonl_path):
     summary_list = []
     sentiment_list = []
@@ -271,7 +223,6 @@ def load_and_combine_data(annotated_jsonl_path, initial_labeled_jsonl_path):
 
     df_combined = pd.DataFrame({"summary": summary_list, "sentiment": sentiment_list})
     return df_combined
-###################################################################################################################################
 
 if __name__ == "__main__":
     annotated_jsonl_path = "/teamspace/studios/this_studio/Final_pipeline/manually_annotated/iter_07.jsonl"
@@ -283,13 +234,9 @@ if __name__ == "__main__":
     encoder = BERT_BiLSTM_Attention().to(device)
     classifier = SentimentClassifier().to(device)
 
-    # Train the encoder with triplet loss
+   
     train_triplet_encoder(encoder, df_combined, tokenizer)
-
-    # Fine-tune the classifier on the encoder's embeddings
     train_classifier(encoder, classifier, df_combined, tokenizer)
-
-    # Save the fine-tuned models
     torch.save(classifier.state_dict(), "/teamspace/studios/this_studio/Final_pipeline/models/total_finetuning/classifier/classifier_model5.pt")
     torch.save(encoder.state_dict(), "/teamspace/studios/this_studio/Final_pipeline/models/total_finetuning/encoder/encoder_model5.pt")
     print("Fine-tuned models saved!")
