@@ -24,7 +24,7 @@ The goal of this project is to use **time-series modeling techniques** to captur
 
 ### **Time-Series Modeling:**
 
-- To model sentiment as a **time series**, we track sentiment scores over time and apply techniques like **ARIMA** or **LSTMs** for forecasting future sentiment trends.
+- To model sentiment as a **time series**, we track sentiment scores over time and apply **CNN** + **LSTM** for forecasting future Average sentiment scores.
 
 ### **Hidden Markov Models (HMM) for Regime Detection:**
 
