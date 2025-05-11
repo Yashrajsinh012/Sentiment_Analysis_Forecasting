@@ -108,3 +108,39 @@ for target in TARGET_COLUMNS:
 forecast_df = pd.DataFrame(future_predictions)
 forecast_df.to_json("10_day_forecast.jsonl", orient="records", lines=True)
 print("Forecast saved to '10_day_forecast.jsonl'")
+
+# the data of the past and forecasted sentiment scores are concatenated
+''' HMM '''
+df_combined = pd.read_json(r"combined_past_and_forecast.jsonl", lines  = True)
+scaler = StandardScaler()
+X = scaler.fit_transform(df_combined[['pos_ratio', 'neu_ratio', 'neg_ratio']].values)
+n_states = 3
+
+# Fit 
+hmm_model = GaussianHMM(n_components=n_states, covariance_type='full', n_iter=1000, random_state=42, init_params='kmeans')
+hmm_model.fit(X)
+# Predict 
+df_combined['regime'] = hmm_model.predict(X)
+df = df_combined.copy()
+df = df.sort_values('timestamp')
+
+# Plot
+data = df['avg_sentiment'].values
+regimes = df['regime'].values
+timestamps = df['timestamp'].values
+plt.figure(figsize=(16, 6))
+colors = ['red', 'green', 'blue']
+labels = {0: 'Declining', 1: 'Neutral', 2: 'Optimistic'}
+
+for i in range(3):  
+    mask = (regimes == i)
+    plt.plot(np.where(mask)[0], data[mask], '.', label=f'{labels[i]}', color=colors[i])
+
+plt.plot(data, color='black', alpha=0.3, label='Avg Sentiment')
+plt.title("HMM Regime Detection on Avg Sentiment")
+plt.xlabel("Time Index")
+plt.ylabel("Avg Sentiment")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
