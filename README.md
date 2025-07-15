@@ -1,42 +1,78 @@
-# **Sentiment Analysis of Amazon Product Reviews Using Time-Series Modeling**
+Sentiment Classification Using Semi-Supervised Learning
+This project presents a semi-supervised learning pipeline for sentiment classification, focusing on minimizing manual annotation while maintaining strong model performance. The method leverages a small labeled dataset and a large corpus of unlabeled reviews, using active learning and metric learning to iteratively improve the model.
 
-![image](https://github.com/user-attachments/assets/b94acfa3-efb3-417b-b3e2-d0cccd3a685c)
+Pipeline Overview
+The end-to-end training process follows a semi-supervised learning strategy, consisting of the following steps:
 
+1. Labeled Data Initialization
+A labeled dataset is collected from Kaggle and preprocessed.
 
-## **Abstract**
+This dataset is used to train the initial version of the model.
 
-Sentiment analysis plays a crucial role in understanding user opinions and improving business strategies. While traditional sentiment analysis provides insights into static reviews, this project focuses on understanding the **temporal evolution** of sentiment, which is influenced by external factors like product updates, competitor activity, and market trends. By applying **BiLSTM with Attention** and **time-series modeling** (including **Hidden Markov Models (HMM)** and **LSTMs**), the project aims to track sentiment shifts over time and detect anomalies in user feedback for e-commerce platforms like Amazon. These insights can help businesses anticipate changes, respond to emerging trends, and refine product strategies.
+2. Zero-Shot Inference on Unlabeled Data
+The trained model is used to perform zero-shot predictions on an unlabeled dataset (Amazon cellphone reviews).
 
-## **Problem Statement**
+3. Uncertainty-Based Sampling
+Predictions are analyzed to identify samples where the model is most uncertain.
 
-In **e-commerce platforms**, user sentiment within product categories evolves over time due to several factors such as product innovation, competitive actions, and external events. Traditional sentiment analysis methods typically treat reviews as independent, static observations and fail to capture these temporal shifts.
+These uncertain samples are prioritized for human annotation, enabling efficient use of annotation resources.
 
-A key challenge is identifying when sentiment **regimes** change within a category (e.g., from positive to negative sentiment) and detecting **anomalies** (e.g., sudden spikes or drops in sentiment) that may indicate disruptions like product failures, viral trends, or external influences.
+4. Manual Annotation
+Human annotators label the uncertain samples.
 
-The goal of this project is to use **time-series modeling techniques** to capture the dynamic nature of sentiment over time, detect shifts in sentiment regimes, and flag unusual sentiment patterns.
+These new labels are merged with the existing labeled dataset.
 
-## **Approach**
+5. Iterative Fine-Tuning
+The model is fine-tuned using the updated dataset.
 
-### **BiLSTM + Attention for Sentiment Analysis:**
+Initially, only the classifier is fine-tuned.
 
-- **BiLSTM (Bidirectional Long Short-Term Memory)** is used to capture both past and future context in sentiment sequences. This allows for better understanding of sentiment changes, as the model considers both previous and upcoming review data.
-- **Attention Mechanism** is added on top of BiLSTM to focus on important words or phrases in the reviews that contribute the most to sentiment changes, improving model interpretability and accuracy.
+Later, both the encoder and classifier are fine-tuned.
 
-### **Time-Series Modeling:**
+This process is repeated iteratively until the model reaches satisfactory performance.
 
-- To model sentiment as a **time series**, we track sentiment scores over time and apply **CNN** + **LSTM** for forecasting future Average sentiment scores.
+This pipeline integrates active learning with iterative fine-tuning to reduce annotation costs while gradually improving model accuracy.
 
-### **Hidden Markov Models (HMM) for Regime Detection:**
+Model Architecture
+The sentiment classification model is built with the following components:
 
-- **Regime Detection** involves detecting shifts in sentiment regimes within a category. This can be achieved using **Hidden Markov Models (HMM)**, where sentiment scores are assumed to follow an underlying hidden regime. The HMM helps identify when sentiment transitions between different states (e.g., positive, neutral, or negative).
-- The model uses **Markov processes** with transition probabilities between different sentiment regimes and applies algorithms like the **Viterbi algorithm** or **Bayesian Change Point Detection (BOCPD)** to estimate the most probable sequence of sentiment regimes over time.
+1. Encoder Head
+The encoder transforms raw text inputs into meaningful sentence-level embeddings. It consists of:
 
-### **Anomaly Detection in Sentiment Trends:**
+BERT (Frozen):
+Utilizes pre-trained BERT to generate contextual token embeddings. The BERT weights remain frozen during training to reduce computational load and prevent overfitting.
 
-- **Anomalies** in sentiment trends correspond to sudden shifts in customer opinion. For this, a robust approach such as **Exponential Weighted Moving Average (EWMA)** is used to detect abnormal sentiment shifts.
-- If the sentiment score deviates significantly from the expected value (predicted sentiment), it is flagged as an anomaly. This can be further refined using **LSTM-based autoencoders** trained on sentiment sequences for detecting outlier behavior.
+2-Layer BiLSTM:
+Processes BERT embeddings to capture sequential dependencies in both forward and backward directions.
 
-### **Sentiment Evolution Analysis:**
+Attention Layer:
+Learns to assign weights to tokens, highlighting the most relevant parts of the sentence.
 
-- The time-series models are applied to a sequence of sentiment scores over time, providing a clear understanding of how sentiment evolves within a product category. These models also help detect anomalies that could point to significant market events or disruptions.
+Linear Projection:
+Projects the attended BiLSTM outputs into a fixed-size sentence embedding.
+
+2. Triplet Loss Head
+A metric learning head designed to improve the quality of the learned sentence embeddings.
+
+Triplet Loss (Batch Hard Strategy):
+Encourages the model to pull embeddings of similar sentiment closer and push dissimilar ones apart in the embedding space. This enhances the model's ability to generalize across variations in sentence structure and phrasing.
+
+3. Classifier Head
+The classifier uses the sentence embedding to predict sentiment labels.
+
+Fully Connected Layers:
+
+Three linear layers with ReLU activations.
+
+Includes dropout and batch normalization for regularization and stability.
+
+Output Layer:
+
+Final layer outputs logits for three sentiment classes:
+
+Positive
+
+Negative
+
+Neutral
 
