@@ -36,7 +36,7 @@ The end-to-end training pipeline is designed to iteratively improve model perfor
 
 The sentiment classification model consists of three main components: an encoder, a triplet loss head, and a classifier head.
 
-![Model Architecture](images/architecture.png)
+![Model Architecture][(images/architecture.png](https://github.com/Yashrajsinh012/Sentiment_Analysis_Forecasting/blob/main/model_architecture.png))
 
 ### 1. Encoder
 
