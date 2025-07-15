@@ -1,76 +1,82 @@
-Sentiment Classification Using Semi-Supervised Learning
-This project presents a semi-supervised learning pipeline for sentiment classification, focusing on minimizing manual annotation while maintaining strong model performance. The method leverages a small labeled dataset and a large corpus of unlabeled reviews, using active learning and metric learning to iteratively improve the model.
+# Sentiment Classification Using Semi-Supervised Learning
 
-Pipeline Overview
-The end-to-end training process follows a semi-supervised learning strategy, consisting of the following steps:
+This project presents a semi-supervised learning approach to sentiment classification using a small labeled dataset (from Kaggle) and a large unlabeled corpus (Amazon cellphone reviews). The pipeline incorporates active learning and metric learning to reduce manual labeling efforts while progressively improving model performance.
 
-1. Labeled Data Initialization
-A labeled dataset is collected from Kaggle and preprocessed.
+---
 
-This dataset is used to train the initial version of the model.
+## Pipeline Overview
 
-2. Zero-Shot Inference on Unlabeled Data
-The trained model is used to perform zero-shot predictions on an unlabeled dataset (Amazon cellphone reviews).
+The end-to-end training pipeline is designed to iteratively improve model performance through uncertainty sampling and selective manual annotation.
 
-3. Uncertainty-Based Sampling
-Predictions are analyzed to identify samples where the model is most uncertain.
+![Pipeline Overview](images/pipeline.png)
 
-These uncertain samples are prioritized for human annotation, enabling efficient use of annotation resources.
+### Steps:
 
-4. Manual Annotation
-Human annotators label the uncertain samples.
+1. **Labeled Dataset Initialization**  
+   Begin with a small labeled dataset to train the initial model.
 
-These new labels are merged with the existing labeled dataset.
+2. **Zero-Shot Inference**  
+   Use the trained model to predict sentiments on an unlabeled Amazon review dataset.
 
-5. Iterative Fine-Tuning
-The model is fine-tuned using the updated dataset.
+3. **Uncertainty-Based Sampling**  
+   Identify low-confidence predictions and select them for manual review.
 
-Initially, only the classifier is fine-tuned.
+4. **Manual Annotation**  
+   Annotators label the selected samples, which are added to the labeled dataset.
 
-Later, both the encoder and classifier are fine-tuned.
+5. **Iterative Fine-Tuning**  
+   Retrain the model with the expanded dataset. First fine-tune the classifier, then the full encoder + classifier.
 
-This process is repeated iteratively until the model reaches satisfactory performance.
+6. **Repeat**  
+   The above cycle is repeated until the model reaches satisfactory performance.
 
-This pipeline integrates active learning with iterative fine-tuning to reduce annotation costs while gradually improving model accuracy.
+---
 
-Model Architecture
-The sentiment classification model is built with the following components:
+## Model Architecture
 
-1. Encoder Head
-The encoder transforms raw text inputs into meaningful sentence-level embeddings. It consists of:
+The sentiment classification model consists of three main components: an encoder, a triplet loss head, and a classifier head.
 
-BERT (Frozen):
-Utilizes pre-trained BERT to generate contextual token embeddings. The BERT weights remain frozen during training to reduce computational load and prevent overfitting.
+![Model Architecture](images/architecture.png)
 
-2-Layer BiLSTM:
-Processes BERT embeddings to capture sequential dependencies in both forward and backward directions.
+### 1. Encoder
 
-Attention Layer:
-Learns to assign weights to tokens, highlighting the most relevant parts of the sentence.
+- **BERT (Frozen)**  
+  Pre-trained BERT is used to generate contextual token embeddings. The weights remain frozen during training.
 
-Linear Projection:
-Projects the attended BiLSTM outputs into a fixed-size sentence embedding.
+- **2-Layer BiLSTM**  
+  Captures sequential information from token embeddings.
 
-2. Triplet Loss Head
-A metric learning head designed to improve the quality of the learned sentence embeddings.
+- **Attention Layer**  
+  Assigns weights to important tokens for sentence-level representation.
 
-Triplet Loss (Batch Hard Strategy):
-Encourages the model to pull embeddings of similar sentiment closer and push dissimilar ones apart in the embedding space. This enhances the model's ability to generalize across variations in sentence structure and phrasing.
+- **Linear Projection**  
+  Reduces the attention output to a fixed-size sentence embedding.
 
-3. Classifier Head
-The classifier uses the sentence embedding to predict sentiment labels.
+### 2. Triplet Loss Head
 
-Fully Connected Layers:
+- **Triplet Loss (Batch Hard)**  
+  Encourages semantically similar sentences to be close in embedding space, and dissimilar ones to be distant. Improves generalization and embedding quality.
 
-Three linear layers with ReLU activations.
+### 3. Classifier Head
 
-Includes dropout and batch normalization for regularization and stability.
+- **Three Fully Connected Layers**  
+  Includes ReLU activation, Dropout, and Batch Normalization.
 
-Output Layer:
+- **Output Layer**  
+  Predicts one of three sentiment classes: Positive, Negative, or Neutral.
 
-Final layer outputs logits for three sentiment classes:
+---
 
-Positive
+## Key Features
+
+- Semi-supervised pipeline with minimal manual annotation.
+- Metric learning via triplet loss to enhance representation quality.
+- Modular training loop with uncertainty-based data selection.
+
+---
+
+## Folder Structure (Recommended)
+
 
 Negative
 
