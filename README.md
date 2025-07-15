@@ -75,12 +75,4 @@ The sentiment classification model consists of three main components: an encoder
 - Metric learning via triplet loss to enhance representation quality.
 - Modular training loop with uncertainty-based data selection.
 
----
-
-## Folder Structure (Recommended)
-
-
-Negative
-
-Neutral
 
