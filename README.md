@@ -8,7 +8,8 @@ This project presents a semi-supervised learning approach to sentiment classific
 
 The end-to-end training pipeline is designed to iteratively improve model performance through uncertainty sampling and selective manual annotation.
 
-![Pipeline Overview](images/pipeline.png)
+<img width="1052" height="597" alt="image" src="https://github.com/user-attachments/assets/36d1186c-0936-4260-9e5b-574b45e385f7" />
+
 
 ### Steps:
 
