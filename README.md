@@ -1,6 +1,6 @@
 # Sentiment Classification Using Semi-Supervised Learning
 
-This project presents a semi-supervised learning approach to sentiment classification using a small labeled dataset (from Kaggle) and a large unlabeled corpus (Amazon cellphone reviews). The pipeline incorporates active learning and metric learning to reduce manual labeling efforts while progressively improving model performance.
+This project presents a semi-supervised learning approach to sentiment classification using a small labeled dataset (from Kaggle) and a large unlabeled corpus (Amazon cellphone reviews). The pipeline incorporates active learning and contrastive learning to reduce manual labeling efforts while progressively improving model performance.
 
 ---
 
